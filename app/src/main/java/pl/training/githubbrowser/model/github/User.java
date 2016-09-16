@@ -1,11 +1,8 @@
 package pl.training.githubbrowser.model.github;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 import com.google.gson.annotations.SerializedName;
 
-public class User implements Parcelable {
+public class User {
 
     private long id;
     private String name;
@@ -15,19 +12,6 @@ public class User implements Parcelable {
     private String location;
     @SerializedName("avatar_url")
     private String avatarUrl;
-
-    public User() {
-    }
-
-    protected User(Parcel in) {
-        id = in.readLong();
-        name = in.readString();
-        url = in.readString();
-        email = in.readString();
-        login = in.readString();
-        location = in.readString();
-        avatarUrl = in.readString();
-    }
 
     public long getId() {
         return id;
@@ -84,34 +68,5 @@ public class User implements Parcelable {
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeLong(id);
-        dest.writeString(name);
-        dest.writeString(url);
-        dest.writeString(email);
-        dest.writeString(login);
-        dest.writeString(location);
-        dest.writeString(avatarUrl);
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public static final Creator<User> CREATOR = new Creator<User>() {
-        @Override
-        public User createFromParcel(Parcel in) {
-            return new User(in);
-        }
-
-        @Override
-        public User[] newArray(int size) {
-            return new User[size];
-        }
-
-    };
 
 }
