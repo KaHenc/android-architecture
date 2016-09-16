@@ -1,17 +1,15 @@
 package pl.training.githubbrowser.viewmodel;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import pl.training.githubbrowser.model.github.GitHub;
-import pl.training.githubbrowser.model.github.Repository;
-import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 
 public class RepositoriesViewModel {
 
-    public Observable<List<RepositoryItemViewModel>> repositories = Observable.just(new ArrayList<>());
+    public PublishSubject<List<RepositoryItemViewModel>> repositoriesStream = PublishSubject.create();
 
     private GitHub gitHub;
 
@@ -20,13 +18,13 @@ public class RepositoriesViewModel {
     }
 
     public void loadRepositories(String username) {
-        Observable<List<Repository>> observable = gitHub.getRepositories(username)
+        gitHub.getRepositories(username)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io());
-
-        repositories = observable.flatMapIterable(list -> list)
+                .subscribeOn(Schedulers.io())
+                .flatMapIterable(list -> list)
                 .map(RepositoryItemViewModel::new)
-                .toList();
+                .toList()
+                .subscribe(repositoriesStream::onNext, repositoriesStream::onError);
     }
 
 }

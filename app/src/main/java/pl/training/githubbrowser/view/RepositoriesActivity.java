@@ -23,11 +23,10 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import pl.training.githubbrowser.GitHubBrowserApplication;
 import pl.training.githubbrowser.R;
-import pl.training.githubbrowser.model.github.Repository;
 import pl.training.githubbrowser.viewmodel.RepositoriesViewModel;
 import pl.training.githubbrowser.viewmodel.RepositoryItemViewModel;
 import retrofit2.adapter.rxjava.HttpException;
-import rx.functions.Action1;
+import rx.Subscription;
 
 public class RepositoriesActivity extends AppCompatActivity {
 
@@ -43,6 +42,8 @@ public class RepositoriesActivity extends AppCompatActivity {
     TextView infoTextView;
     @BindView(R.id.button_search)
     ImageButton searchButton;
+
+    private Subscription subscription;
 
     public void showRepositories(List<RepositoryItemViewModel> repositories) {
         RepositoryAdapter adapter = (RepositoryAdapter) repositoriesRecycleView.getAdapter();
@@ -60,7 +61,7 @@ public class RepositoriesActivity extends AppCompatActivity {
         infoTextView.setVisibility(View.VISIBLE);
     }
 
-    public void onLoadingCompleted() {
+    private void onLoadingCompleted() {
         progressBar.setVisibility(View.GONE);
         if (repositoriesRecycleView.getAdapter().getItemCount() > 0) {
             repositoriesRecycleView.requestFocus();
@@ -81,12 +82,7 @@ public class RepositoriesActivity extends AppCompatActivity {
         setupRepositoriesRecycleView();
         setupUsernameEditText();
         setupSearchButton();
-        repositoriesViewModel.repositories.subscribe(new Action1<List<RepositoryItemViewModel>>() {
-            @Override
-            public void call(List<RepositoryItemViewModel> repositoryItemViewModels) {
-
-            }
-        });
+        setupBindings();
     }
 
     private void loadRepositories(String username) {
@@ -117,6 +113,13 @@ public class RepositoriesActivity extends AppCompatActivity {
         searchButton.setOnClickListener(__ -> loadRepositories(usernameEditText.getText().toString()));
     }
 
+    private void setupBindings() {
+        subscription = repositoriesViewModel.repositoriesStream.subscribe(repositories -> {
+            showRepositories(repositories);
+            onLoadingCompleted();
+        }, this::showError);
+    }
+
     private void hideSoftKeyboard() {
         InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(usernameEditText.getWindowToken(), 0);
@@ -140,5 +143,11 @@ public class RepositoriesActivity extends AppCompatActivity {
         }
 
     };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        subscription.unsubscribe();
+    }
 
 }
