@@ -7,7 +7,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -24,22 +23,14 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import pl.training.githubbrowser.GitHubBrowserApplication;
 import pl.training.githubbrowser.R;
-import pl.training.githubbrowser.model.github.GitHub;
 import pl.training.githubbrowser.model.github.Repository;
+import pl.training.githubbrowser.presenter.RepositoriesPresenter;
 import retrofit2.adapter.rxjava.HttpException;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
 
-public class RepositoriesActivity extends AppCompatActivity {
-
-    private static final String TAG = RepositoriesActivity.class.getName();
+public class RepositoriesActivity extends AppCompatActivity implements RepositoriesView {
 
     @Inject
-    GitHub gitHub;
-
+    RepositoriesPresenter presenter;
     @BindView(R.id.repositories_recycler_view)
     RecyclerView repositoriesRecycleView;
     @BindView(R.id.edit_text_username)
@@ -51,10 +42,26 @@ public class RepositoriesActivity extends AppCompatActivity {
     @BindView(R.id.button_search)
     ImageButton searchButton;
 
-    Subscription subscription;
+    @Override
+    public void showRepositories(List<Repository> repositories) {
+        RepositoryAdapter adapter = (RepositoryAdapter) repositoriesRecycleView.getAdapter();
+        adapter.setRepositories(repositories);
+        adapter.notifyDataSetChanged();
+    }
 
+    @Override
+    public void showError(Throwable throwable) {
+        progressBar.setVisibility(View.GONE);
+        if (throwable instanceof HttpException && ((HttpException) throwable).code() == 404) {
+            infoTextView.setText(R.string.error_username_not_found);
+        } else {
+            infoTextView.setText(R.string.error_loading_repos);
+        }
+        infoTextView.setVisibility(View.VISIBLE);
+    }
 
-    Action0 onLoadingComplete = () -> {
+    @Override
+    public void onLoadingCompleted() {
         progressBar.setVisibility(View.GONE);
         if (repositoriesRecycleView.getAdapter().getItemCount() > 0) {
             repositoriesRecycleView.requestFocus();
@@ -64,25 +71,7 @@ public class RepositoriesActivity extends AppCompatActivity {
             infoTextView.setText(R.string.text_empty_repos);
             infoTextView.setVisibility(View.VISIBLE);
         }
-    };
-
-    Action1<List<Repository>> onRepositoriesLoaded = repositories -> {
-        RepositoryAdapter adapter = (RepositoryAdapter) repositoriesRecycleView.getAdapter();
-        adapter.setRepositories(repositories);
-        adapter.notifyDataSetChanged();
-    };
-
-
-    Action1<Throwable> onLoadingError = throwable -> {
-        Log.e(TAG, "Error loading repositories: " + throwable.getMessage());
-        progressBar.setVisibility(View.GONE);
-        if (throwable instanceof HttpException && ((HttpException) throwable).code() == 404) {
-            infoTextView.setText(R.string.error_username_not_found);
-        } else {
-            infoTextView.setText(R.string.error_loading_repos);
-        }
-        infoTextView.setVisibility(View.VISIBLE);
-    };
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,9 +79,17 @@ public class RepositoriesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_repositories);
         GitHubBrowserApplication.component().inject(this);
         ButterKnife.bind(this);
+        presenter.attachView(this);
         setupRepositoriesRecycleView();
         setupUsernameEditText();
         setupSearchButton();
+    }
+
+    private void loadRepositories(String username) {
+        progressBar.setVisibility(View.VISIBLE);
+        repositoriesRecycleView.setVisibility(View.GONE);
+        infoTextView.setVisibility(View.GONE);
+        presenter.loadRepositories(username);
     }
 
     private void setupRepositoriesRecycleView() {
@@ -107,23 +104,13 @@ public class RepositoriesActivity extends AppCompatActivity {
             if (EditorInfo.IME_ACTION_SEARCH != actionId) {
                 return false;
             }
-            loadGitHubRepositories(usernameEditText.getText().toString());
+            loadRepositories(usernameEditText.getText().toString());
             return true;
         });
     }
 
     private void setupSearchButton() {
-        searchButton.setOnClickListener(__ -> loadGitHubRepositories(usernameEditText.getText().toString()));
-    }
-
-    public void loadGitHubRepositories(String username) {
-        progressBar.setVisibility(View.VISIBLE);
-        repositoriesRecycleView.setVisibility(View.GONE);
-        infoTextView.setVisibility(View.GONE);
-        subscription = gitHub.getRepositories(username)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(onRepositoriesLoaded, onLoadingError, onLoadingComplete);
+        searchButton.setOnClickListener(__ -> loadRepositories(usernameEditText.getText().toString()));
     }
 
     private void hideSoftKeyboard() {
@@ -153,9 +140,7 @@ public class RepositoriesActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (subscription != null) {
-            subscription.unsubscribe();
-        }
+        presenter.detachView();
     }
 
 }
