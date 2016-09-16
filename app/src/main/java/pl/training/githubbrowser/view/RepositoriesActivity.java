@@ -24,13 +24,15 @@ import butterknife.ButterKnife;
 import pl.training.githubbrowser.GitHubBrowserApplication;
 import pl.training.githubbrowser.R;
 import pl.training.githubbrowser.model.github.Repository;
-import pl.training.githubbrowser.presenter.RepositoriesPresenter;
+import pl.training.githubbrowser.viewmodel.RepositoriesViewModel;
+import pl.training.githubbrowser.viewmodel.RepositoryItemViewModel;
 import retrofit2.adapter.rxjava.HttpException;
+import rx.functions.Action1;
 
-public class RepositoriesActivity extends AppCompatActivity implements RepositoriesView {
+public class RepositoriesActivity extends AppCompatActivity {
 
     @Inject
-    RepositoriesPresenter presenter;
+    RepositoriesViewModel repositoriesViewModel;
     @BindView(R.id.repositories_recycler_view)
     RecyclerView repositoriesRecycleView;
     @BindView(R.id.edit_text_username)
@@ -42,14 +44,12 @@ public class RepositoriesActivity extends AppCompatActivity implements Repositor
     @BindView(R.id.button_search)
     ImageButton searchButton;
 
-    @Override
-    public void showRepositories(List<Repository> repositories) {
+    public void showRepositories(List<RepositoryItemViewModel> repositories) {
         RepositoryAdapter adapter = (RepositoryAdapter) repositoriesRecycleView.getAdapter();
         adapter.setRepositories(repositories);
         adapter.notifyDataSetChanged();
     }
 
-    @Override
     public void showError(Throwable throwable) {
         progressBar.setVisibility(View.GONE);
         if (throwable instanceof HttpException && ((HttpException) throwable).code() == 404) {
@@ -60,7 +60,6 @@ public class RepositoriesActivity extends AppCompatActivity implements Repositor
         infoTextView.setVisibility(View.VISIBLE);
     }
 
-    @Override
     public void onLoadingCompleted() {
         progressBar.setVisibility(View.GONE);
         if (repositoriesRecycleView.getAdapter().getItemCount() > 0) {
@@ -79,17 +78,22 @@ public class RepositoriesActivity extends AppCompatActivity implements Repositor
         setContentView(R.layout.activity_repositories);
         GitHubBrowserApplication.component().inject(this);
         ButterKnife.bind(this);
-        presenter.attachView(this);
         setupRepositoriesRecycleView();
         setupUsernameEditText();
         setupSearchButton();
+        repositoriesViewModel.repositories.subscribe(new Action1<List<RepositoryItemViewModel>>() {
+            @Override
+            public void call(List<RepositoryItemViewModel> repositoryItemViewModels) {
+
+            }
+        });
     }
 
     private void loadRepositories(String username) {
         progressBar.setVisibility(View.VISIBLE);
         repositoriesRecycleView.setVisibility(View.GONE);
         infoTextView.setVisibility(View.GONE);
-        presenter.loadRepositories(username);
+        repositoriesViewModel.loadRepositories(username);
     }
 
     private void setupRepositoriesRecycleView() {
@@ -136,11 +140,5 @@ public class RepositoriesActivity extends AppCompatActivity implements Repositor
         }
 
     };
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        presenter.detachView();
-    }
 
 }

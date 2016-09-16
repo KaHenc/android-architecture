@@ -11,16 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import pl.training.githubbrowser.R;
-import pl.training.githubbrowser.model.github.Repository;
+import pl.training.githubbrowser.viewmodel.RepositoryItemViewModel;
 
 public class RepositoryAdapter extends RecyclerView.Adapter<RepositoryAdapter.RepositoryViewHolder> {
 
-    private List<Repository> repositories = new ArrayList<>();
+    private List<RepositoryItemViewModel> repositories = new ArrayList<>();
     private OnRepositorySelectListener onRepositorySelectListener = repository -> {};
 
     public interface OnRepositorySelectListener {
 
-        void onRepositorySelect(Repository repository);
+        void onRepositorySelect(RepositoryItemViewModel repository);
 
     }
 
@@ -28,7 +28,7 @@ public class RepositoryAdapter extends RecyclerView.Adapter<RepositoryAdapter.Re
         this.onRepositorySelectListener = onRepositorySelectListener;
     }
 
-    public void setRepositories(List<Repository> repositories) {
+    public void setRepositories(List<RepositoryItemViewModel> repositories) {
         this.repositories = repositories;
     }
 
@@ -43,10 +43,10 @@ public class RepositoryAdapter extends RecyclerView.Adapter<RepositoryAdapter.Re
 
     @Override
     public void onBindViewHolder(RepositoryViewHolder holder, int position) {
-        Repository repository = repositories.get(position);
+        RepositoryItemViewModel repository = repositories.get(position);
         Context context = holder.titleTextView.getContext();
         holder.repository = repository;
-        holder.titleTextView.setText(repository.getName());
+        holder.titleTextView.setText(repository.getTitle());
         holder.descriptionTextView.setText(repository.getDescription());
         holder.watchersTextView.setText(context.getResources().getString(R.string.text_watchers, repository.getWatchers()));
         holder.starsTextView.setText(context.getResources().getString(R.string.text_stars, repository.getStars()));
@@ -66,7 +66,7 @@ public class RepositoryAdapter extends RecyclerView.Adapter<RepositoryAdapter.Re
         TextView watchersTextView;
         TextView starsTextView;
         TextView forksTextView;
-        Repository repository;
+        RepositoryItemViewModel repository;
 
         public RepositoryViewHolder(View itemView) {
             super(itemView);
