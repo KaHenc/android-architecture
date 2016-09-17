@@ -21,11 +21,8 @@ public class RepositoriesPresenter implements Presenter<RepositoriesView> {
         subscription = gitHub.getRepositories(username)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(repositories -> repositoriesView.showRepositories(repositories),
-                        throwable -> repositoriesView.showError(throwable),
-                        () -> repositoriesView.onLoadingCompleted());
+                .subscribe(repositoriesView::showRepositories, repositoriesView::showError, repositoriesView::onLoadingCompleted);
     }
-
 
     @Override
     public void attachView(RepositoriesView view) {
